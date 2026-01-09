@@ -1,11 +1,15 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.apps.common.paginations import PageSizedPagination
 from backend.apps.profiles.models import OrderItem, Order, ShippingAddress
 from backend.apps.sellers.models import Seller
+from backend.apps.shop.filters import ProductFilter
 from backend.apps.shop.models import Category, Product
+from backend.apps.shop.schema_examples import PRODUCT_PARAM_EXAMPLE
 from backend.apps.shop.serializers import (
     CategorySerializer,
     ProductSerializer,
@@ -77,6 +81,7 @@ class ProductsByCategoryView(APIView):
 
 class ProductsView(APIView):
     serializer_class = ProductSerializer
+    pagination_class = PageSizedPagination
 
     @extend_schema(
         operation_id="all_products",
@@ -85,13 +90,21 @@ class ProductsView(APIView):
             This endpoint returns all products.
         """,
         tags=tags,
+        parameters=PRODUCT_PARAM_EXAMPLE,
     )
     def get(self, request, *args, **kwargs):
         products = Product.objects.select_related(
             "category", "seller", "seller__user"
         ).all()
-        serializer = self.serializer_class(products, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        filterset = ProductFilter(request.query_params, queryset=products)
+        if filterset.is_valid():
+            queryset = filterset.qs
+            paginator = self.pagination_class()
+            paginated_queryset = paginator.paginate_queryset(queryset, request)
+            serializer = self.serializer_class(paginated_queryset, many=True)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(data=filterset.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProductsBySellerView(APIView):

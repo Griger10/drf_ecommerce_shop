@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from backend.apps.common.permissions import IsSeller
 from backend.apps.profiles.models import OrderItem, Order
 from backend.apps.sellers.models import Seller
 from backend.apps.sellers.serializers import SellerSerializer
@@ -44,6 +45,7 @@ class SellersView(APIView):
 
 class SellerProductsView(APIView):
     serializer_class = ProductSerializer
+    permission_classes = [IsSeller]
 
     @extend_schema(
         summary="Seller Products Fetch",
@@ -101,6 +103,7 @@ class SellerProductsView(APIView):
 
 class SellerProductView(APIView):
     serializer_class = CreateProductSerializer
+    permission_classes = [IsSeller]
 
     @extend_schema(
         summary="Update a product",
@@ -167,6 +170,7 @@ class SellerProductView(APIView):
 
 class SellerOrdersView(APIView):
     serializer_class = OrderSerializer
+    permission_classes = [IsSeller]
 
     @extend_schema(
         operation_id="seller_orders_view",
@@ -189,6 +193,7 @@ class SellerOrdersView(APIView):
 
 class SellerOrderItemsView(APIView):
     serializer_class = CheckItemOrderSerializer
+    permission_classes = [IsSeller]
 
     @extend_schema(
         operation_id="seller_order_items_view",

@@ -1,9 +1,11 @@
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
+from backend.apps.common.permissions import IsOwner
 from backend.apps.common.utils import set_dict_attr
 from backend.apps.profiles.models import ShippingAddress, Order, OrderItem
 from backend.apps.profiles.serializers import ProfileSerializer
@@ -15,6 +17,7 @@ tags = ["profiles"]
 
 class ProfileView(APIView):
     serializer_class = ProfileSerializer
+    permission_classes = [IsOwner]
 
     @extend_schema(
         summary="Retrieve Profile",
@@ -88,6 +91,7 @@ class ProfileView(APIView):
 )
 class ShippingAddressesViewSet(ModelViewSet):
     serializer_class = ShippingAddressSerializer
+    permission_classes = [IsOwner]
 
     def get_queryset(self):
         return ShippingAddress.objects.filter(user=self.request.user)
