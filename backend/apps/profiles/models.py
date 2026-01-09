@@ -1,7 +1,5 @@
 from django.db import models
 
-from django.db import models
-
 from backend.apps.accounts.models import User
 from backend.apps.common.models import BaseModel
 from backend.apps.shop.models import Product
@@ -132,6 +130,17 @@ class OrderItem(BaseModel):
     @property
     def get_total(self):
         return self.product.price_current * self.quantity
+
+    @property
+    def get_cart_subtotal(self):
+        orderitems = self.orderitems.all()
+        total = sum([item.get_total for item in orderitems])
+        return total
+
+    @property
+    def get_cart_total(self):
+        total = self.get_cart_subtotal
+        return total
 
     class Meta:
         ordering = ["-created_at"]
