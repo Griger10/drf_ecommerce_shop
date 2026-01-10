@@ -2,7 +2,7 @@ services:
   backend:
     container_name: ecommerce_backend
     restart: unless-stopped
-    command: gunicorn backend.core.wsgi:application --bind 0.0.0.0:8080 --workers 8
+    command: gunicorn backend.core.asgi:application --bind 0.0.0.0:8080 --workers 8 -k uvicorn.workers.UvicornWorker
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -12,6 +12,9 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    volumes:
+      - "./backend/media:/app/backend/media"
+      - "./backend/staticfiles:/app/backend/staticfiles"
 
   postgres:
     container_name: ecommerce_db
@@ -32,6 +35,9 @@ services:
       - "80:80"
     depends_on:
       - backend
+    volumes:
+      - "./backend/media:/app/backend/media"
+      - "./backend/staticfiles:/app/backend/staticfiles"
 
 volumes:
   db_data:

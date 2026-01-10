@@ -13,9 +13,7 @@ from backend.apps.shop.views import (
 )
 
 router = DefaultRouter()
-router.register(
-    "reviews", ReviewsViewSet, basename="reviews"
-)
+router.register("reviews", ReviewsViewSet, basename="reviews")
 
 urlpatterns = [
     path("categories/", CategoriesView.as_view()),
@@ -25,5 +23,5 @@ urlpatterns = [
     path("products/<slug:slug>/", ProductView.as_view()),
     path("cart/", CartView.as_view()),
     path("checkout/", CheckoutView.as_view()),
-    path("reviews/", include(router.urls)),
+    path("", include(router.urls)),
 ]

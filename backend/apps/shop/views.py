@@ -1,10 +1,11 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.utils.urls import replace_query_param
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from adrf.views import APIView as AsyncAPIView
 
 from backend.apps.common.paginations import PageSizedPagination
 from backend.apps.profiles.models import OrderItem, Order, ShippingAddress
@@ -82,7 +83,7 @@ class ProductsByCategoryView(APIView):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
-class ProductsView(APIView):
+class ProductsView(AsyncAPIView):
     serializer_class = ProductSerializer
     pagination_class = PageSizedPagination
 
@@ -95,19 +96,63 @@ class ProductsView(APIView):
         tags=tags,
         parameters=PRODUCT_PARAM_EXAMPLE,
     )
-    def get(self, request, *args, **kwargs):
-        products = Product.objects.select_related(
-            "category", "seller", "seller__user"
-        ).all()
-        filterset = ProductFilter(request.query_params, queryset=products)
-        if filterset.is_valid():
-            queryset = filterset.qs
-            paginator = self.pagination_class()
-            paginated_queryset = paginator.paginate_queryset(queryset, request)
-            serializer = self.serializer_class(paginated_queryset, many=True)
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(data=filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+    async def get(self, request, *args, **kwargs):
+        queryset = (
+            Product.objects.select_related("category", "seller", "seller__user")
+            .order_by("id")
+            .all()
+        )
+
+        filterset = ProductFilter(request.query_params, queryset=queryset)
+        if not filterset.is_valid():
+            return Response(filterset.errors, status=status.HTTP_400_BAD_REQUEST)
+        qs = filterset.qs
+
+        paginator = self.pagination_class()
+        page_size = paginator.get_page_size(request) or 10
+
+        try:
+            page_number = int(request.query_params.get(paginator.page_query_param, 1))
+        except (ValueError, TypeError):
+            page_number = 1
+
+        total_count = await qs.acount()
+
+        start = (page_number - 1) * page_size
+        end = start + page_size
+
+        if start >= total_count > 0:
+            return Response(
+                {"detail": "Invalid page."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        page_items = [p async for p in qs[start:end]]
+
+        serializer = self.serializer_class(page_items, many=True)
+
+        return Response(
+            {
+                "count": total_count,
+                "next": self.get_next_link(
+                    request, page_number, total_count, page_size
+                ),
+                "previous": self.get_previous_link(request, page_number),
+                "results": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def get_next_link(self, request, page_number, total_count, page_size):
+        if (page_number * page_size) >= total_count:
+            return None
+        url = request.build_absolute_uri()
+        return replace_query_param(url, "page", page_number + 1)
+
+    def get_previous_link(self, request, page_number):
+        if page_number <= 1:
+            return None
+        url = request.build_absolute_uri()
+        return replace_query_param(url, "page", page_number - 1)
 
 
 class ProductsBySellerView(APIView):
