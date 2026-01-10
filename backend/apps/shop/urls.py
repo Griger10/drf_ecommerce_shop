@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from backend.apps.shop.views import (
     CategoriesView,
@@ -8,6 +9,12 @@ from backend.apps.shop.views import (
     ProductView,
     CartView,
     CheckoutView,
+    ReviewsViewSet,
+)
+
+router = DefaultRouter()
+router.register(
+    "reviews", ReviewsViewSet, basename="reviews"
 )
 
 urlpatterns = [
@@ -18,4 +25,5 @@ urlpatterns = [
     path("products/<slug:slug>/", ProductView.as_view()),
     path("cart/", CartView.as_view()),
     path("checkout/", CheckoutView.as_view()),
+    path("reviews/", include(router.urls)),
 ]

@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from backend.apps.profiles.serializers import ShippingAddressSerializer
+from backend.apps.shop.models import Review
 
 
 class CategorySerializer(serializers.Serializer):
@@ -92,3 +93,27 @@ class CheckItemOrderSerializer(serializers.Serializer):
     product = ProductSerializer()
     quantity = serializers.IntegerField()
     total = serializers.FloatField(source="get_total")
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Review
+        fields = "__all__"
+
+    def validate(self, attrs):
+        user = attrs.get("user")
+        product = attrs.get("product")
+
+        if self.instance is None:
+            exists = Review.objects.filter(
+                user=user, product=product, is_deleted=False
+            ).exists()
+
+            if exists:
+                raise serializers.ValidationError(
+                    "Вы уже оставили отзыв на этот товар. Измените существующий или удалите его перед созданием нового."
+                )
+
+        return attrs

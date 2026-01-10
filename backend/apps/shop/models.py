@@ -1,8 +1,18 @@
 from autoslug import AutoSlugField
 from django.db import models
+from django.db.models import Q
 
+from backend.apps.accounts.models import User
 from backend.apps.common.models import BaseModel, IsDeletedModel
 from backend.apps.sellers.models import Seller
+
+RATING_CHOICES = (
+    (1, 1),
+    (2, 2),
+    (3, 3),
+    (4, 4),
+    (5, 5),
+)
 
 
 class Category(BaseModel):
@@ -67,3 +77,21 @@ class Product(IsDeletedModel):
 
     def __str__(self):
         return self.name
+
+
+class Review(IsDeletedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="reviews"
+    )
+    rating = models.IntegerField(choices=RATING_CHOICES)
+    text = models.TextField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "product"],
+                name="unique_user_product",
+                condition=Q(is_deleted=False),
+            )
+        ]

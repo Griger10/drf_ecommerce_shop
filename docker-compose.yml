@@ -1,0 +1,37 @@
+services:
+  backend:
+    container_name: ecommerce_backend
+    restart: unless-stopped
+    command: gunicorn backend.core.wsgi:application --bind 0.0.0.0:8080 --workers 8
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: ecommerce_db
+    image: postgres:18-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - "db_data:/var/lib/postgresql"
+
+  nginx:
+    container_name: ecommerce_nginx
+    restart: unless-stopped
+    build: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

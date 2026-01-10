@@ -1,14 +1,16 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
 from backend.apps.common.paginations import PageSizedPagination
 from backend.apps.profiles.models import OrderItem, Order, ShippingAddress
 from backend.apps.sellers.models import Seller
 from backend.apps.shop.filters import ProductFilter
-from backend.apps.shop.models import Category, Product
+from backend.apps.shop.models import Category, Product, Review
 from backend.apps.shop.schema_examples import PRODUCT_PARAM_EXAMPLE
 from backend.apps.shop.serializers import (
     CategorySerializer,
@@ -17,9 +19,10 @@ from backend.apps.shop.serializers import (
     ToggleCartItemSerializer,
     OrderSerializer,
     CheckoutSerializer,
+    ReviewSerializer,
 )
 
-tags = ["Shop"]
+tags = ["shop"]
 
 
 class CategoriesView(APIView):
@@ -272,3 +275,9 @@ class CheckoutView(APIView):
             data={"message": "Checkout Successful", "item": serializer.data},
             status=status.HTTP_200_OK,
         )
+
+
+class ReviewsViewSet(ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Review.objects.all()
