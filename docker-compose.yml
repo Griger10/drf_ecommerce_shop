@@ -2,16 +2,37 @@ services:
   backend:
     container_name: ecommerce_backend
     restart: unless-stopped
-    command: gunicorn backend.core.asgi:application --bind 0.0.0.0:8080 --workers 8 -k uvicorn.workers.UvicornWorker
     build:
       context: .
       dockerfile: backend/Dockerfile
+    command: gunicorn backend.core.asgi:application --bind 0.0.0.0:8080 --workers 8 -k uvicorn.workers.UvicornWorker
     env_file:
       - .env
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - "./backend/media:/app/backend/media"
+      - "./backend/staticfiles:/app/backend/staticfiles"
+
+  celery_worker:
+    container_name: ecommerce_worker
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A backend.core worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     volumes:
       - "./backend/media:/app/backend/media"
       - "./backend/staticfiles:/app/backend/staticfiles"
@@ -24,6 +45,11 @@ services:
       - .env
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - "db_data:/var/lib/postgresql"
 
@@ -39,5 +65,23 @@ services:
       - "./backend/media:/app/backend/media"
       - "./backend/staticfiles:/app/backend/staticfiles"
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbitmq
+    container_name: rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file:
+      - .env
+    volumes:
+      - "rabbitmq-data:/var/lib/rabbitmq"
+
 volumes:
   db_data:
+  rabbitmq-data:
