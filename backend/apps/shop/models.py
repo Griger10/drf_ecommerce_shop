@@ -70,6 +70,7 @@ class Product(IsDeletedModel):
         Category, on_delete=models.CASCADE, related_name="products"
     )
     in_stock = models.IntegerField(default=5)
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, null=True)
 
     image1 = models.ImageField(upload_to="product_images/")
     image2 = models.ImageField(upload_to="product_images/", blank=True)
