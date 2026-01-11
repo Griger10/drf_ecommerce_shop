@@ -73,21 +73,6 @@ class ProfileView(APIView):
         description="Create a new shipping address for the authenticated user.",
         tags=tags,
     ),
-    put=extend_schema(
-        summary="Update Shipping Address",
-        description="Update a shipping address for the authenticated user.",
-        tags=tags,
-    ),
-    patch=extend_schema(
-        summary="Patch Shipping Address",
-        description="Patch a shipping address for the authenticated user.",
-        tags=tags,
-    ),
-    delete=extend_schema(
-        summary="Delete Shipping Address",
-        description="Delete a shipping address for the authenticated user.",
-        tags=tags,
-    ),
 )
 class ShippingAddressesViewSet(ModelViewSet):
     serializer_class = ShippingAddressSerializer

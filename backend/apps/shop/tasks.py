@@ -1,5 +1,6 @@
-from django.db.models import Avg
 from celery import shared_task
+from django.db.models import Avg
+
 
 from backend.apps.shop.models import Product
 
